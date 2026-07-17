@@ -117,26 +117,46 @@ async function connectToWhatsApp() {
 
         console.log('Mensagem recebida:', text)
 
-        if (text.startsWith('https://')) {
-            try {
-                await sock.sendMessage(jid, {text: '⏬ Baixando arquivo...'})
+       if (text.startsWith('https://')) {
+    try {
+        await sock.sendMessage(jid, { text: '⏬ Baixando arquivo...' });
 
-                const {filePath, nomeArquivo} = await downloadFile(text)
+        const { filePath, nomeArquivo } = await downloadFile(text);
 
-                await sock.sendMessage(jid, {
-                    document: fs.readFileSync(filePath),
-                    fileName: nomeArquivo,
-                    mimetype: 'application/zip'
-                })
-
-                fs.unlinkSync(filePath)
-            } catch (err) {
-                console.error(err)
-                await sock.sendMessage(jid, {
-                    text: '❌ Falha ao baixar ou enviar o ZIP.'
-                })
-            }
+        // Verifica se o arquivo realmente foi baixado antes de prosseguir
+        if (!fs.existsSync(filePath)) {
+            throw new Error('Arquivo não encontrado no disco após o download.');
         }
+
+        // 🚀 CORREÇÃO: Envia usando Stream (fs.createReadStream) em vez de ler tudo na RAM
+        await sock.sendMessage(jid, {
+            document: fs.createReadStream(filePath), 
+            fileName: nomeArquivo,
+            mimetype: 'application/octet-stream' // Aceita qualquer tipo de arquivo de forma segura
+        });
+
+        // Pequeno delay de 1 segundo antes de deletar para dar tempo do Node fechar o stream
+        setTimeout(() => {
+            try {
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            } catch (e) {
+                console.error('Erro ao deletar arquivo temporário:', e.message);
+            }
+        }, 1000);
+
+    } catch (err) {
+        console.error('❌ Erro no processo de download/envio:', err);
+        
+        // Evita que o bot quebre se o erro for na própria conexão do whatsapp
+        try {
+            await sock.sendMessage(jid, {
+                text: '❌ Falha ao baixar ou enviar o arquivo.'
+            });
+        } catch (msgErr) {
+            console.error('Não foi possível enviar a mensagem de erro ao usuário:', msgErr.message);
+        }
+    }
+}
 
         // 7. Resposta simples
         if (text === 'ping') {
