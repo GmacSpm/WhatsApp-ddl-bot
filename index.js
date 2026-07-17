@@ -121,20 +121,20 @@ async function connectToWhatsApp() {
             try {
                 await sock.sendMessage(jid, { text: '⏬ Baixando arquivo...'})
 
-                // const {filePath, nomeArquivo} = await downloadFile(text)
+                const {filePath, nomeArquivo} = await downloadFile(text)
 
-                // await sock.sendMessage(jid, {
-                //     document: fs.readFileSync(filePath),
-                //     fileName: nomeArquivo,
-                //     mimetype: 'application/zip'
-                // })
+                await sock.sendMessage(jid, {
+                    document: fs.readFileSync(filePath),
+                    fileName: nomeArquivo,
+                    mimetype: 'application/zip'
+                })
 
                 fs.unlinkSync(filePath)
             } catch (err) {
                 console.error(err)
-                // await sock.sendMessage(jid, {
-                //     text: '❌ Falha ao baixar ou enviar o ZIP.'
-                // })
+                await sock.sendMessage(jid, {
+                    text: '❌ Falha ao baixar ou enviar o ZIP.'
+                })
             }
         }
 
