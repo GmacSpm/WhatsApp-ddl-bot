@@ -6,7 +6,7 @@ import { finished } from 'node:stream/promises';
 export default async function downloadFile(url, options = {}) {
     const {
         directory = './downloads',
-        timeout = 30000,
+        timeout = 40000,
         extension = 'zip'
     } = options;
 
