@@ -21,6 +21,7 @@ const rl = readline.createInterface({
 const question = (text) => new Promise((resolve) => rl.question(text, resolve));
 // const phoneNumber = await question("❓ Qual seu número de WhatsApp? (sem +): ")
 const phoneNumber = process.env.PHONE_NUMBER || "+55000000000";
+ console.log('Número usado: ' + phoneNumber)
 let pairingRequested = false
 let tries = 0;
 
