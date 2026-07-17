@@ -119,7 +119,7 @@ async function connectToWhatsApp() {
 
         if (text.startsWith('https://')) {
             try {
-                await sock.sendMessage(jid, {text: '⏬ Baixando arquivo...'})
+                await sock.sendMessage(jid, { text: '⏬ Baixando arquivo...'})
 
                 // const {filePath, nomeArquivo} = await downloadFile(text)
 
