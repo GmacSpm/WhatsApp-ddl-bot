@@ -132,9 +132,9 @@ async function connectToWhatsApp() {
                 fs.unlinkSync(filePath)
             } catch (err) {
                 console.error(err)
-                await sock.sendMessage(jid, {
-                    text: '❌ Falha ao baixar ou enviar o ZIP.'
-                })
+                // await sock.sendMessage(jid, {
+                //     text: '❌ Falha ao baixar ou enviar o ZIP.'
+                // })
             }
         }
 
