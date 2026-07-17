@@ -1,13 +1,16 @@
-import makeWASocket, {
+import baileys, {
     useMultiFileAuthState,
     fetchLatestBaileysVersion,
     DisconnectReason
-} from '@whiskeysockets/baileys'
-import Pino from 'pino'
-import fs from 'fs'
-import downloadFile from './services/fileDownload.js'
+} from '@whiskeysockets/baileys';
+import Pino from 'pino';
+import fs from 'fs';
+import downloadFile from './services/fileDownload.js';
 import readline from 'readline';
 import qrcode from "qrcode-terminal";
+
+// Extrai o makeWASocket da propriedade default do pacote importado
+const makeWASocket = baileys.default || baileys;
 
 const authFolder = './auth';
 
