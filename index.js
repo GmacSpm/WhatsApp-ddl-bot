@@ -8,8 +8,7 @@ import fs from 'fs';
 import downloadFile from './services/fileDownload.js';
 import readline from 'readline';
 import qrcode from "qrcode-terminal";
-
-const express = require('express')
+import express from "express";
 
 const app = express();
 const port = process.env.PORT || 4000;
