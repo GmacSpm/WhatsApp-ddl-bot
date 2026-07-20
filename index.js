@@ -9,6 +9,13 @@ import downloadFile from './services/fileDownload.js';
 import readline from 'readline';
 import qrcode from "qrcode-terminal";
 
+const express = require('express')
+
+const app = express();
+const port = process.env.PORT || 4000;
+
+let botStatus = "Inicializando...";
+
 // Extrai o makeWASocket da propriedade default do pacote importado
 const makeWASocket = baileys.default || baileys;
 
@@ -50,6 +57,7 @@ async function connectToWhatsApp() {
 
         if (connection === 'connecting') {
             console.log('⏳ Conectando aos servidores do WhatsApp...')
+			botStatus = "Conectando ao servidores...";
         }
 
         if (qr && !pairingRequested) {
@@ -58,6 +66,7 @@ async function connectToWhatsApp() {
             const pairingCode = await sock.requestPairingCode(phoneNumber)
             console.log('🔒 Código de pareamento: ' + pairingCode)
             pairingRequested = true;
+			botStatus = "Aguardando pareamento...";
         }
 
         if (connection === 'close') {
@@ -94,11 +103,13 @@ async function connectToWhatsApp() {
                 connectToWhatsApp();
                 tries = tries + 1;
                 console.log(tries);
+				botStatus = "Tentando reconectar...";
             }
         }
 
         if (connection === 'open') {
             console.log('✅ Bot conectado e pronto!')
+			botStatus = "✅ Bot conectado e pronto!";
         }
     })
 
@@ -146,4 +157,17 @@ async function connectToWhatsApp() {
 }
 
 connectToWhatsApp()
+
+app.get('/status', (req, res) => {
+    res.json({
+        status: "sucesso",
+        bot_status: botStatus,
+        uptime: process.uptime(), // tempo que o servidor está rodando em segundos
+        timestamp: new Date()
+    });
+});
+
+app.listen(port, () => {
+    console.log(`Servidor de status rodando na porta ${port}`);
+});
 rl.close()
