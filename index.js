@@ -6,7 +6,6 @@ import baileys, {
 import Pino from 'pino';
 import fs from 'fs';
 import downloadFile from './services/fileDownload.js';
-import readline from 'readline';
 import qrcode from "qrcode-terminal";
 import express from "express";
 
@@ -17,23 +16,18 @@ let botStatus = "Inicializando...";
 
 // Extrai o makeWASocket da propriedade default do pacote importado
 const makeWASocket = baileys.default || baileys;
-
 const authFolder = './auth';
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-const question = (text) => new Promise((resolve) => rl.question(text, resolve));
-// const phoneNumber = await question("❓ Qual seu número de WhatsApp? (sem +): ")
 const phoneNumber = process.env.PHONE_NUMBER || "+55000000000";
- console.log('Número usado: ' + phoneNumber)
+console.log('Número usado: ' + phoneNumber)
 let pairingRequested = false
 let tries = 0;
 
 async function clearAuth() {
     if (fs.existsSync(authFolder)) {
-        fs.rmSync(authFolder, {recursive: true, force: true});
+        fs.rmSync(authFolder, {
+            recursive: true,
+            force: true
+        });
         console.log("🗑 Pasta auth removida com sucesso.");
     }
 }
@@ -52,20 +46,27 @@ async function connectToWhatsApp() {
     sock.ev.on('creds.update', saveCreds)
 
     sock.ev.on('connection.update', async (update) => {
-        const {connection, lastDisconnect, qr} = update
+        const {
+            connection,
+            lastDisconnect,
+            qr
+        } = update
 
         if (connection === 'connecting') {
             console.log('⏳ Conectando aos servidores do WhatsApp...')
-			botStatus = "Conectando ao servidores...";
+            botStatus = "Conectando ao servidores...";
         }
 
         if (qr && !pairingRequested) {
 
-            qrcode.generate(qr, {small: true});
-            const pairingCode = await sock.requestPairingCode(phoneNumber)
+            qrcode.generate(qr, {
+                small: true
+            });
+            const pairingCode = await sock.requestPairingCode(
+                phoneNumber)
             console.log('🔒 Código de pareamento: ' + pairingCode)
             pairingRequested = true;
-			botStatus = "Aguardando pareamento...";
+            botStatus = "Aguardando pareamento...";
         }
 
         if (connection === 'close') {
@@ -81,11 +82,15 @@ async function connectToWhatsApp() {
                 // Erro de autenticação (precisa de novo login)
                 isAuthFailure: statusCode === 401,
                 // Conexão perdida (internet, servidor do WhatsApp caiu)
-                isNetworkError: statusCode === DisconnectReason.connectionLost || statusCode === DisconnectReason.timedOut
+                isNetworkError: statusCode === DisconnectReason.connectionLost ||
+                    statusCode === DisconnectReason.timedOut
             };
 
-            if (logic.isLoggedOut || logic.isAuthFailure || statusCode === 428) {
-                console.log('❌ Sessão inválida. Limpando dados e aguardando novo QR...');
+            if (logic.isLoggedOut || logic.isAuthFailure || statusCode ===
+                428) {
+                console.log(
+                    '❌ Sessão inválida. Limpando dados e aguardando novo QR...'
+                );
                 // Função para apagar a pasta de sessão (deve ser síncrona ou await)
                 setTimeout(() => {
                     clearAuth();
@@ -102,13 +107,13 @@ async function connectToWhatsApp() {
                 connectToWhatsApp();
                 tries = tries + 1;
                 console.log(tries);
-				botStatus = "Tentando reconectar...";
+                botStatus = "Tentando reconectar...";
             }
         }
 
         if (connection === 'open') {
             console.log('✅ Bot conectado e pronto!')
-			botStatus = "✅ Bot conectado e pronto!";
+            botStatus = "✅ Bot conectado e pronto!";
         }
     })
 
@@ -129,9 +134,14 @@ async function connectToWhatsApp() {
 
         if (text.startsWith('https://')) {
             try {
-                await sock.sendMessage(jid, { text: '⏬ Baixando arquivo...'})
+                await sock.sendMessage(jid, {
+                    text: '⏬ Baixando arquivo...'
+                })
 
-                const {filePath, nomeArquivo} = await downloadFile(text)
+                const {
+                    filePath,
+                    nomeArquivo
+                } = await downloadFile(text)
 
                 await sock.sendMessage(jid, {
                     document: fs.readFileSync(filePath),
@@ -150,7 +160,9 @@ async function connectToWhatsApp() {
 
         // 7. Resposta simples
         if (text === 'ping') {
-            await sock.sendMessage(jid, {text: 'pong'})
+            await sock.sendMessage(jid, {
+                text: 'pong'
+            })
         }
     })
 }
@@ -169,4 +181,3 @@ app.get('/status', (req, res) => {
 app.listen(port, () => {
     console.log(`Servidor de status rodando na porta ${port}`);
 });
-rl.close()
