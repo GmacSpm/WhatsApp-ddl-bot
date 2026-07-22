@@ -1,20 +1,31 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { finished } from 'node:stream/promises';
 import {
     Readable
 } from 'node:stream';
-import {
-    finished
-} from 'node:stream/promises';
-import {
-    pipeline
-} from 'stream/promises';
+import archiver from 'archiver';
 
-export default async function downloadFile(url, options = {}) {
+
+function zipFile(origemPath, destineZipPath, zipFileName) {
+    return new Promise((resolve, reject) => {
+        const output = fs.createWriteStream(destineZipPath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        output.on('close', () => resolve());
+        archive.on('error', (err) => reject(err));
+
+        archive.pipe(output);
+        // Adiciona o arquivo com o nome e extensão corretos dentro do zip
+        archive.file(origemPath, { name: zipFileName });
+        archive.finalize();
+    });
+}
+
+export default async function downloadFile(url, fileName, options = {}) {
     const {
         directory = './downloads',
-            timeout = 40000,
-            extension = 'zip'
+            timeout = 40000
     } = options;
 
     // Garante que o diretório existe
@@ -23,9 +34,11 @@ export default async function downloadFile(url, options = {}) {
             recursive: true
         });
     }
+    const filePath = path.join(directory, fileName);
 
-    const nomeArquivo = `arquivo_${Date.now()}.${extension}`;
-    const filePath = path.join(directory, nomeArquivo);
+    // Nome e caminho do arquivo ZIP final
+    const zipName = `arquivo_${fileName}.zip`;
+    const zipPath = path.join(directory, zipName);
 
     // AbortController para gerenciar o timeout
     const controller = new AbortController();
@@ -40,13 +53,18 @@ export default async function downloadFile(url, options = {}) {
             throw new Error(`Falha ao baixar arquivo: ${response.statusText}`);
         }
 
+        // 1. Escreve o arquivo baixado temporariamente
+        const writer = fs.createWriteStream(filePath);
         const body = Readable.fromWeb(response.body);
-        await pipeline(body, fs.createWriteStream(filePath));
 
-        return {
-            filePath,
-            nomeArquivo
-        };
+        body.pipe(writer);
+        await finished(writer);
+
+        // 2. Zipa o arquivo baixado
+        await zipFile(filePath, zipPath, fileName);
+
+        // Retorna o caminho do arquivo .zip final
+        return { zipPath, zipName };
 
     } catch (err) {
         if (err.name === 'AbortError') {

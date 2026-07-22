@@ -32,6 +32,9 @@ async function clearAuth() {
     }
 }
 
+// MAP pra guardar o estado de cada usuário: { jid: { filePath, step } }
+const pendingFiles = new Map();
+
 async function connectToWhatsApp() {
     const {state, saveCreds} = await useMultiFileAuthState(authFolder)
     const {version} = await fetchLatestBaileysVersion()
@@ -132,44 +135,68 @@ async function connectToWhatsApp() {
 
         console.log('Mensagem recebida:', text)
 
+        // 1. VERIFICA SE ESTÁ ESPERANDO NOME DO ARQUIVO DESSE USUÁRIO
+        if (pendingFiles.has(jid)) {
+            const pending = pendingFiles.get(jid);
+
+            if (pending.step === 'waiting_name') {
+                // Pega o que o usuário digitou como "nome.extensao"
+                const userInput = text.trim();
+                const [nome, ...extParts] = userInput.split('.');
+                const extensao = extParts.join('.') || 'bin'; // se não tiver . pega bin
+
+                const novoNome = `${nome}.${extensao}`;
+
+                try {
+                    await sock.sendMessage(jid, {text: '⏬ Baixando arquivo...'})
+                    console.log("Novo nome: " + novoNome)
+                    const {zipPath, zipName} = await downloadFile(pending.link, novoNome) // só pega o path
+
+                    await sock.sendMessage(jid, {text: `⏳ Enviando zipado como: *${novoNome}*`})
+
+                    await sock.sendMessage(jid, {
+                        document: {url: zipPath},
+                        fileName: zipName,
+                        mimetype: 'application/zip'
+                    })
+
+                    //fs.unlinkSync(zipPath) // apaga temp
+                    pendingFiles.delete(jid) // limpa estado
+                    await sock.sendMessage(jid, {text: '✅ Enviado!'})
+
+                } catch (err) {
+                    console.error(err)
+                    await sock.sendMessage(jid, {text: '❌ Falha ao enviar.'})
+                    pendingFiles.delete(jid)
+                }
+            }
+            return; // para aqui pra não cair nos outros ifs
+        }
+
+        // 2. SE NÃO ESTIVER ESPERANDO, VERIFICA SE É LINK
         if (text.startsWith('https://')) {
             try {
+                // Envia mensagem pedindo nome de arquivo antes de baixar.
                 await sock.sendMessage(jid, {
-                    text: '⏬ Baixando arquivo...'
+                    text: 'Agora me diga o *nome e extensão* que você quer.\nEx: `relatorio.pdf` ou `video.mp4`'
                 })
-
-                const {
-                    filePath,
-                    nomeArquivo
-                } = await downloadFile(text)
-
-                await sock.sendMessage(jid, {
-                    document: fs.readFileSync(filePath),
-                    fileName: nomeArquivo,
-                    mimetype: 'application/zip'
-                })
-
-                fs.unlinkSync(filePath)
+                // Guarda o arquivo e muda o estado
+                pendingFiles.set(jid, {link: text, step: 'waiting_name'});
             } catch (err) {
                 console.error(err)
-                await sock.sendMessage(jid, {
-                    text: '❌ Falha ao baixar ou enviar o ZIP.'
-                })
+                await sock.sendMessage(jid, {text: '❌ Falha ao baixar o arquivo.'})
             }
         }
 
-        // 7. Resposta simples
         if (text === 'ping') {
-            await sock.sendMessage(jid, {
-                text: 'pong'
-            })
+            await sock.sendMessage(jid, {text: 'pong'})
         }
     })
 }
 
 connectToWhatsApp()
 
-app.get('/status', (req, res) => {
+app.get('/', (req, res) => {
     res.json({
         status: "sucesso",
         bot_status: botStatus,
