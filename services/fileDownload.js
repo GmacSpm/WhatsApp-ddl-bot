@@ -25,7 +25,7 @@ function zipFile(origemPath, destineZipPath, zipFileName) {
 export default async function downloadFile(url, fileName, options = {}) {
     const {
         directory = './downloads',
-            timeout = 40000
+            timeout = 300000
     } = options;
 
     // Garante que o diretório existe
