@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { finished } from 'node:stream/promises';
+import {finished} from 'node:stream/promises';
 import {
     Readable
 } from 'node:stream';
@@ -9,15 +9,26 @@ import archiver from 'archiver';
 
 function zipFile(origemPath, destineZipPath, zipFileName) {
     return new Promise((resolve, reject) => {
+        // Extensões de mídia que já possuem compressão nativa
+        const midiaExtensions = [
+            '.mp4', '.mkv', '.avi', '.mov', '.webm', '.3gp',
+            '.mp3', '.ogg', '.aac', '.m4a', '.opus', '.wav',
+            '.jpg', '.jpeg', '.png', '.webp', '.gif'
+        ];
+        // Pega a extensão do arquivo e converte para minúsculas
+        const ext = path.extname(origemPath).toLowerCase();
+        // Se for mídia, usa level: 0 (instantâneo), senão usa level: 9
+        const compressionLevel = midiaExtensions.includes(ext) ? 0 : 9;
+
         const output = fs.createWriteStream(destineZipPath);
-        const archive = archiver('zip', { zlib: { level: 9 } });
+        const archive = archiver('zip', {zlib: {level: compressionLevel}});
 
         output.on('close', () => resolve());
         archive.on('error', (err) => reject(err));
 
         archive.pipe(output);
         // Adiciona o arquivo com o nome e extensão corretos dentro do zip
-        archive.file(origemPath, { name: zipFileName });
+        archive.file(origemPath, {name: zipFileName});
         archive.finalize();
     });
 }
@@ -25,7 +36,7 @@ function zipFile(origemPath, destineZipPath, zipFileName) {
 export default async function downloadFile(url, fileName, options = {}) {
     const {
         directory = './downloads',
-            timeout = 300000
+        timeout = 300000
     } = options;
 
     // Garante que o diretório existe
@@ -64,7 +75,7 @@ export default async function downloadFile(url, fileName, options = {}) {
         await zipFile(filePath, zipPath, fileName);
 
         // Retorna o caminho do arquivo .zip final
-        return { zipPath, zipName };
+        return {zipPath, zipName};
 
     } catch (err) {
         if (err.name === 'AbortError') {
