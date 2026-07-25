@@ -6,7 +6,6 @@ import baileys, {
 } from '@whiskeysockets/baileys';
 import Pino from 'pino';
 import fs from 'fs';
-import downloadFile from './services/fileDownload.js';
 import qrcode from "qrcode-terminal";
 import express from "express";
 import readline from "readline";
