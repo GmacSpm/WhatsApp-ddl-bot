@@ -10,6 +10,7 @@ import downloadFile from './services/fileDownload.js';
 import qrcode from "qrcode-terminal";
 import express from "express";
 import readline from "readline";
+import downloadManager from './services/downloadManager.js';
 
 // Para usar no endpoint, API de status
 const app = express();
@@ -28,15 +29,15 @@ const r1 = readline.createInterface({
 
 const askQuestion = (question) => new Promise(resolve => r1.question(question, resolve));
 let phoneNumber;
-if (process.env.PHONE_NUMBER)  {
+if (process.env.PHONE_NUMBER) {
     console.log("Usando PHONE_NUMBER do environment")
     phoneNumber = process.env.PHONE_NUMBER || "+55000000000";
-}
-else {
+} else {
     console.log("PHONE_NUMBER não encontrado no environment, perguntando ao usuário\n")
     phoneNumber = await askQuestion('Digite o número de telefone (ex: 5543990000000): ')
 }
-console.log('Número usado: ' + phoneNumber)
+
+r1.close();
 let pairingRequested = false
 let tries = 0;
 
@@ -167,8 +168,7 @@ async function connectToWhatsApp() {
 
                 try {
                     await sock.sendMessage(jid, {text: '⏬ Baixando arquivo...'})
-                    console.log("Novo nome: " + novoNome)
-                    const {zipPath, zipName} = await downloadFile(pending.link, novoNome)
+                    const {zipPath, zipName} = await downloadManager(pending.link, novoNome)
 
                     await sock.sendMessage(jid, {text: `⏳ Enviando zipado como: *${novoNome}*`})
 
@@ -213,7 +213,6 @@ async function connectToWhatsApp() {
 }
 
 connectToWhatsApp()
-r1.close();
 
 app.get('/', (req, res) => {
     res.json({
