@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import baileys, {
     useMultiFileAuthState,
     fetchLatestBaileysVersion,
@@ -5,32 +6,52 @@ import baileys, {
 } from '@whiskeysockets/baileys';
 import Pino from 'pino';
 import fs from 'fs';
-import downloadFile from './services/fileDownload.js';
-import readline from 'readline';
 import qrcode from "qrcode-terminal";
+import express from "express";
+import readline from "readline";
+import downloadManager from './services/downloadManager.js';
+
+// Para usar no endpoint, API de status
+const app = express();
+const port = process.env.PORT || 4000;
+
+let botStatus = "Inicializando...";
 
 // Extrai o makeWASocket da propriedade default do pacote importado
 const makeWASocket = baileys.default || baileys;
-
 const authFolder = './auth';
 
-const rl = readline.createInterface({
+const r1 = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
-const question = (text) => new Promise((resolve) => rl.question(text, resolve));
-// const phoneNumber = await question("❓ Qual seu número de WhatsApp? (sem +): ")
-const phoneNumber = process.env.PHONE_NUMBER || "+55000000000";
- console.log('Número usado: ' + phoneNumber)
+
+const askQuestion = (question) => new Promise(resolve => r1.question(question, resolve));
+let phoneNumber;
+if (process.env.PHONE_NUMBER) {
+    console.log("Usando PHONE_NUMBER do environment")
+    phoneNumber = process.env.PHONE_NUMBER || "+55000000000";
+} else {
+    console.log("PHONE_NUMBER não encontrado no environment, perguntando ao usuário\n")
+    phoneNumber = await askQuestion('Digite o número de telefone (ex: 5543990000000): ')
+}
+
+r1.close();
 let pairingRequested = false
 let tries = 0;
 
 async function clearAuth() {
     if (fs.existsSync(authFolder)) {
-        fs.rmSync(authFolder, {recursive: true, force: true});
+        fs.rmSync(authFolder, {
+            recursive: true,
+            force: true
+        });
         console.log("🗑 Pasta auth removida com sucesso.");
     }
 }
+
+// MAP pra guardar o estado de cada usuário: { jid: { filePath, step } }
+const pendingFiles = new Map();
 
 async function connectToWhatsApp() {
     const {state, saveCreds} = await useMultiFileAuthState(authFolder)
@@ -46,18 +67,27 @@ async function connectToWhatsApp() {
     sock.ev.on('creds.update', saveCreds)
 
     sock.ev.on('connection.update', async (update) => {
-        const {connection, lastDisconnect, qr} = update
+        const {
+            connection,
+            lastDisconnect,
+            qr
+        } = update
 
         if (connection === 'connecting') {
             console.log('⏳ Conectando aos servidores do WhatsApp...')
+            botStatus = "Conectando ao servidores...";
         }
 
         if (qr && !pairingRequested) {
 
-            qrcode.generate(qr, {small: true});
-            const pairingCode = await sock.requestPairingCode(phoneNumber)
+            qrcode.generate(qr, {
+                small: true
+            });
+            const pairingCode = await sock.requestPairingCode(
+                phoneNumber)
             console.log('🔒 Código de pareamento: ' + pairingCode)
             pairingRequested = true;
+            botStatus = "Aguardando pareamento...";
         }
 
         if (connection === 'close') {
@@ -73,11 +103,15 @@ async function connectToWhatsApp() {
                 // Erro de autenticação (precisa de novo login)
                 isAuthFailure: statusCode === 401,
                 // Conexão perdida (internet, servidor do WhatsApp caiu)
-                isNetworkError: statusCode === DisconnectReason.connectionLost || statusCode === DisconnectReason.timedOut
+                isNetworkError: statusCode === DisconnectReason.connectionLost ||
+                    statusCode === DisconnectReason.timedOut
             };
 
-            if (logic.isLoggedOut || logic.isAuthFailure || statusCode === 428) {
-                console.log('❌ Sessão inválida. Limpando dados e aguardando novo QR...');
+            if (logic.isLoggedOut || logic.isAuthFailure || statusCode ===
+                428) {
+                console.log(
+                    '❌ Sessão inválida. Limpando dados e aguardando novo QR...'
+                );
                 // Função para apagar a pasta de sessão (deve ser síncrona ou await)
                 setTimeout(() => {
                     clearAuth();
@@ -94,11 +128,13 @@ async function connectToWhatsApp() {
                 connectToWhatsApp();
                 tries = tries + 1;
                 console.log(tries);
+                botStatus = "Tentando reconectar...";
             }
         }
 
         if (connection === 'open') {
             console.log('✅ Bot conectado e pronto!')
+            botStatus = "✅ Bot conectado e pronto!";
         }
     })
 
@@ -117,28 +153,58 @@ async function connectToWhatsApp() {
 
         console.log('Mensagem recebida:', text)
 
+        // 1. VERIFICA SE ESTÁ ESPERANDO NOME DO ARQUIVO DESSE USUÁRIO
+        if (pendingFiles.has(jid)) {
+            const pending = pendingFiles.get(jid);
+
+            if (pending.step === 'waiting_name') {
+                // Pega o que o usuário digitou como "nome.extensao"
+                const userInput = text.trim();
+                const [nome, ...extParts] = userInput.split('.');
+                const extensao = extParts.join('.') || 'bin'; // se não tiver . pega bin
+
+                const novoNome = `${nome}.${extensao}`;
+
+                try {
+                    await sock.sendMessage(jid, {text: '⏬ Baixando arquivo...'})
+                    const {zipPath, zipName} = await downloadManager(pending.link, novoNome)
+
+                    await sock.sendMessage(jid, {text: `⏳ Enviando zipado como: *${novoNome}*`})
+
+                    await sock.sendMessage(jid, {
+                        document: {url: zipPath},
+                        fileName: zipName,
+                        mimetype: 'application/zip'
+                    })
+
+                    //fs.unlinkSync(zipPath) // apaga temp
+                    pendingFiles.delete(jid) // limpa estado
+                    await sock.sendMessage(jid, {text: '✅ Enviado!'})
+
+                } catch (err) {
+                    console.error(err)
+                    await sock.sendMessage(jid, {text: '❌ Falha ao enviar.'})
+                    pendingFiles.delete(jid)
+                }
+            }
+            return; // para aqui pra não cair nos outros ifs
+        }
+
+        // 2. SE NÃO ESTIVER ESPERANDO, VERIFICA SE É LINK
         if (text.startsWith('https://')) {
             try {
-                await sock.sendMessage(jid, { text: '⏬ Baixando arquivo...'})
-
-                const {filePath, nomeArquivo} = await downloadFile(text)
-
+                // Envia mensagem pedindo nome de arquivo antes de baixar.
                 await sock.sendMessage(jid, {
-                    document: fs.readFileSync(filePath),
-                    fileName: nomeArquivo,
-                    mimetype: 'application/zip'
+                    text: 'Agora me diga o *nome e extensão* que você quer.\nEx: `relatorio.pdf` ou `video.mp4`'
                 })
-
-                fs.unlinkSync(filePath)
+                // Guarda o arquivo e muda o estado
+                pendingFiles.set(jid, {link: text, step: 'waiting_name'});
             } catch (err) {
                 console.error(err)
-                await sock.sendMessage(jid, {
-                    text: '❌ Falha ao baixar ou enviar o ZIP.'
-                })
+                await sock.sendMessage(jid, {text: '❌ Falha ao baixar o arquivo.'})
             }
         }
 
-        // 7. Resposta simples
         if (text === 'ping') {
             await sock.sendMessage(jid, {text: 'pong'})
         }
@@ -146,4 +212,16 @@ async function connectToWhatsApp() {
 }
 
 connectToWhatsApp()
-rl.close()
+
+app.get('/', (req, res) => {
+    res.json({
+        status: "sucesso",
+        bot_status: botStatus,
+        uptime: process.uptime(), // tempo que o servidor está rodando em segundos
+        timestamp: new Date()
+    });
+});
+
+app.listen(port, () => {
+    console.log(`Servidor de status rodando na porta ${port}`);
+});
