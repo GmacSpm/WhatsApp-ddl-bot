@@ -9,6 +9,7 @@ import downloadFile from './services/fileDownload.js';
 import qrcode from "qrcode-terminal";
 import express from "express";
 
+// Para usar no endpoint, API de status
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -150,7 +151,7 @@ async function connectToWhatsApp() {
                 try {
                     await sock.sendMessage(jid, {text: '⏬ Baixando arquivo...'})
                     console.log("Novo nome: " + novoNome)
-                    const {zipPath, zipName} = await downloadFile(pending.link, novoNome) // só pega o path
+                    const {zipPath, zipName} = await downloadFile(pending.link, novoNome)
 
                     await sock.sendMessage(jid, {text: `⏳ Enviando zipado como: *${novoNome}*`})
 
