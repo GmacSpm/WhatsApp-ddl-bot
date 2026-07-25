@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-ddl-bot",
   "version": "1.0.0",
-  "description": "Bot WhatsApp com login via Pairing Code usando Baileys",
+  "description": "Um Bot pro WhatsApp para downloads",
   "type": "module",
   "main": "index.js",
   "bin": {
