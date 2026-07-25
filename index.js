@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import baileys, {
     useMultiFileAuthState,
     fetchLatestBaileysVersion,
@@ -8,6 +9,7 @@ import fs from 'fs';
 import downloadFile from './services/fileDownload.js';
 import qrcode from "qrcode-terminal";
 import express from "express";
+import readline from "readline";
 
 // Para usar no endpoint, API de status
 const app = express();
@@ -18,7 +20,22 @@ let botStatus = "Inicializando...";
 // Extrai o makeWASocket da propriedade default do pacote importado
 const makeWASocket = baileys.default || baileys;
 const authFolder = './auth';
-const phoneNumber = process.env.PHONE_NUMBER || "+55000000000";
+
+const r1 = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+const askQuestion = (question) => new Promise(resolve => r1.question(question, resolve));
+let phoneNumber;
+if (process.env.PHONE_NUMBER)  {
+    console.log("Usando PHONE_NUMBER do environment")
+    phoneNumber = process.env.PHONE_NUMBER || "+55000000000";
+}
+else {
+    console.log("PHONE_NUMBER não encontrado no environment, perguntando ao usuário\n")
+    phoneNumber = await askQuestion('Digite o número de telefone (ex: 5543990000000): ')
+}
 console.log('Número usado: ' + phoneNumber)
 let pairingRequested = false
 let tries = 0;
@@ -196,6 +213,7 @@ async function connectToWhatsApp() {
 }
 
 connectToWhatsApp()
+r1.close();
 
 app.get('/', (req, res) => {
     res.json({
