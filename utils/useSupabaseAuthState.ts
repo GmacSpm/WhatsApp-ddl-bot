@@ -1,7 +1,10 @@
 import {
     initAuthCreds,
     BufferJSON,
-    proto, AuthenticationState
+    proto
+} from "@whiskeysockets/baileys";
+import type {
+    AuthenticationState
 } from "@whiskeysockets/baileys";
 import {SupabaseClient} from "@supabase/supabase-js";
 
