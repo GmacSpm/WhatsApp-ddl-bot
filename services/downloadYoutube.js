@@ -8,7 +8,7 @@ import {createCookieFile, deleteCookieFile} from '../utils/cookieHelper.js';
 /**
  * Baixa um vídeo do YouTube usando yt-dlp.
  * @param {string} url       - URL do YouTube
- * @param {string, string} url and fileName
+ * @param {string}fileName
  * @returns {Promise<string>} - Caminho do arquivo baixado
  */
 export async function downloadYouTube(url, fileName) {
@@ -65,6 +65,6 @@ export async function downloadYouTube(url, fileName) {
     } catch (err) {
         throw new Error(`Falha no download do YouTube: ${err.message}`);
     } finally {
-        deleteCookieFile()
+        await deleteCookieFile()
     }
 }

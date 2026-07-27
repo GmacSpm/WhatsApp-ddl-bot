@@ -1,15 +1,16 @@
 import 'dotenv/config';
 import baileys, {
-    useMultiFileAuthState,
     fetchLatestBaileysVersion,
     DisconnectReason
 } from '@whiskeysockets/baileys';
 import Pino from 'pino';
-import fs from 'fs';
 import qrcode from "qrcode-terminal";
 import express from "express";
 import readline from "readline";
 import downloadManager from './services/downloadManager.js';
+import { createClient } from '@supabase/supabase-js';
+import { useSupabaseAuthState, clearAuthState } from './utils/useSupabaseAuthState.ts'
+
 
 // Para usar no endpoint, API de status
 const app = express();
@@ -19,7 +20,11 @@ let botStatus = "Inicializando...";
 
 // Extrai o makeWASocket da propriedade default do pacote importado
 const makeWASocket = baileys.default || baileys;
-const authFolder = './auth';
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const CLIENT_ID = 'main';
 
 const r1 = readline.createInterface({
     input: process.stdin,
@@ -40,21 +45,11 @@ r1.close();
 let pairingRequested = false
 let tries = 0;
 
-async function clearAuth() {
-    if (fs.existsSync(authFolder)) {
-        fs.rmSync(authFolder, {
-            recursive: true,
-            force: true
-        });
-        console.log("🗑 Pasta auth removida com sucesso.");
-    }
-}
-
 // MAP pra guardar o estado de cada usuário: { jid: { filePath, step } }
 const pendingFiles = new Map();
 
 async function connectToWhatsApp() {
-    const {state, saveCreds} = await useMultiFileAuthState(authFolder)
+    const { state, saveCreds } = await useSupabaseAuthState(supabase,CLIENT_ID);
     const {version} = await fetchLatestBaileysVersion()
 
     const sock = makeWASocket({
@@ -112,20 +107,19 @@ async function connectToWhatsApp() {
                 console.log(
                     '❌ Sessão inválida. Limpando dados e aguardando novo QR...'
                 );
-                // Função para apagar a pasta de sessão (deve ser síncrona ou await)
-                setTimeout(() => {
-                    clearAuth();
-                    connectToWhatsApp();
-                    pairingRequested = false;
-                }, 5000);
+                await clearAuthState(supabase, CLIENT_ID);
+                pairingRequested = false;
+                tries = 0;
+                await connectToWhatsApp();
+
             } else if (logic.isRestart) {
                 console.log("⏳ Finalizando conexão")
-                connectToWhatsApp()
+                await connectToWhatsApp()
                 tries = 0;
             } else if (tries < 3) {
                 // Para qualquer outro erro (queda de net, etc), tenta reconectar
                 console.log("🔄 Tentando reconectar automaticamente...");
-                connectToWhatsApp();
+                await connectToWhatsApp();
                 tries = tries + 1;
                 console.log(tries);
                 botStatus = "Tentando reconectar...";
@@ -211,7 +205,7 @@ async function connectToWhatsApp() {
     })
 }
 
-connectToWhatsApp()
+connectToWhatsApp().catch(console.error);
 
 app.get('/', (req, res) => {
     res.json({
