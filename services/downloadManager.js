@@ -1,16 +1,8 @@
 import path from 'node:path';
-import {
-    downloadYouTube
-} from './downloadYoutube.js';
-import {
-    downloadGeneric
-} from './downloadGeneric.js';
-import {
-    isYouTubeUrl
-} from '../utils/urlUtils.js';
-import {
-    zipFile
-} from '../utils/zipUtils.js';
+import { downloadYouTube } from './downloadYoutube.js';
+import { downloadGeneric } from './downloadGeneric.js';
+import { isYouTubeUrl } from '../utils/urlUtils.js';
+import { zipFile } from '../utils/zipUtils.js';
 
 /**
  * Função principal: baixa um arquivo a partir de uma URL.

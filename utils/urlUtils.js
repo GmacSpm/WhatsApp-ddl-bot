@@ -7,7 +7,7 @@ export function isYouTubeUrl(url) {
         /youtube\.com\/v\//i,
         /youtube\.com\/playlist\?list=/i,
         /m\.youtube\.com/i,
-        /youtube\.com\/live\//i,
+        /youtube\.com\/live\//i
     ];
-    return patterns.some((p) => p.test(url));
+    return patterns.some(p => p.test(url));
 }

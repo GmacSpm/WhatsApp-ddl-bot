@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 const COOKIE_FILE_NAME = 'yt-cookies.txt';
@@ -15,7 +15,7 @@ export async function createCookieFile(cookieContent) {
     const tempFile = path.join(tempDir, COOKIE_FILE_NAME);
 
     // Cria o arquivo com permissões restritas (apenas o dono pode ler/escrever)
-    await fs.writeFile(tempFile, cookieContent, {mode: 0o600});
+    await fs.writeFile(tempFile, cookieContent, { mode: 0o600 });
     console.log('🍪 Arquivo de cookie criado em:', tempFile);
     return tempFile;
 }

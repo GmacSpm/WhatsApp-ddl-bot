@@ -1,19 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-    finished
-} from 'node:stream/promises';
-import {
-    Readable
-} from 'node:stream';
+import { finished } from 'node:stream/promises';
+import { Readable } from 'node:stream';
 
-import {downloadConfig} from '../config/generalConfig.js'
+import { downloadConfig } from '../config/generalConfig.js';
 
 /**
  * Baixa um arquivo via fetch (para URLs que não são do YouTube)
  */
 export async function downloadGeneric(url, fileName) {
-    const {directory, timeout} = downloadConfig;
+    const { directory, timeout } = downloadConfig;
 
     if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory, {
@@ -26,7 +22,7 @@ export async function downloadGeneric(url, fileName) {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-        const response = await fetch(url, {signal: controller.signal});
+        const response = await fetch(url, { signal: controller.signal });
         if (!response.ok) {
             throw new Error(`Falha ao baixar arquivo: ${response.statusText}`);
         }

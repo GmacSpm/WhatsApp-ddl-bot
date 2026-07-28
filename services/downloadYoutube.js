@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import youtubeDl from 'youtube-dl-exec';
-import {defaultYtOptions} from '../config/youtubeConfig.js'
-import {downloadConfig} from '../config/generalConfig.js'
-import {createCookieFile, deleteCookieFile} from '../utils/cookieHelper.js';
+import { defaultYtOptions } from '../config/youtubeConfig.js';
+import { downloadConfig } from '../config/generalConfig.js';
+import { createCookieFile, deleteCookieFile } from '../utils/cookieHelper.js';
 
 /**
  * Baixa um vídeo do YouTube usando yt-dlp.
@@ -12,7 +12,7 @@ import {createCookieFile, deleteCookieFile} from '../utils/cookieHelper.js';
  * @returns {Promise<string>} - Caminho do arquivo baixado
  */
 export async function downloadYouTube(url, fileName) {
-    const {directory, timeout} = downloadConfig;
+    const { directory, timeout } = downloadConfig;
 
     // Cria diretório se não existir
     if (!fs.existsSync(directory)) {
@@ -22,14 +22,13 @@ export async function downloadYouTube(url, fileName) {
     }
 
     if (defaultYtOptions.proxy != null) {
-        console.log('Usando proxy configurado pelo usuário: '+defaultYtOptions.proxy);
-    }
-    else{
+        console.log('Usando proxy configurado pelo usuário: ' + defaultYtOptions.proxy);
+    } else {
         if (process.env.YOUTUBE_COOKIE) {
             defaultYtOptions.cookies = await createCookieFile(process.env.YOUTUBE_COOKIE);
             console.log('🍪 Usando cookie do .env para autenticação');
         } else {
-            console.log('Tentando baixar sem cookies')
+            console.log('Tentando baixar sem cookies');
         }
     }
 
@@ -37,11 +36,11 @@ export async function downloadYouTube(url, fileName) {
     const baseName = fileName ? path.parse(fileName).name : 'video';
     const outputTemplate = path.join(directory, `${baseName}.%(ext)s`);
 
-    const finalYtOptions = {...defaultYtOptions, output: outputTemplate};
+    const finalYtOptions = { ...defaultYtOptions, output: outputTemplate };
 
     try {
         // Executa o download (passando timeout para o child_process)
-        await youtubeDl(url, finalYtOptions, {timeout});
+        await youtubeDl(url, finalYtOptions, { timeout });
 
         // Localiza o arquivo gerado (pode ter extensões variadas)
         const possibleExtensions = ['.mp4', '.mkv', '.webm', '.flv', '.avi', '.mov'];
@@ -56,7 +55,7 @@ export async function downloadYouTube(url, fileName) {
         // Se não encontrou, tenta qualquer arquivo que comece com baseName
         if (!foundFile) {
             const files = fs.readdirSync(directory);
-            const matching = files.filter((f) => f.startsWith(baseName));
+            const matching = files.filter(f => f.startsWith(baseName));
             if (matching.length > 0) {
                 foundFile = path.join(directory, matching[0]);
             }
@@ -70,6 +69,6 @@ export async function downloadYouTube(url, fileName) {
     } catch (err) {
         throw new Error(`Falha no download do YouTube: ${err.message}`);
     } finally {
-        await deleteCookieFile()
+        await deleteCookieFile();
     }
 }
