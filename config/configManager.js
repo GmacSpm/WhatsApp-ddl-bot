@@ -1,5 +1,4 @@
-import path from 'path';
-import { defaultYtOptions } from '../config/youtubeConfig.js';
+import { defaultYtOptions } from './youtubeConfig.js';
 
 // TODO: Usar também o supabase para guardar preferência de usuário
 export async function loadConfig() {

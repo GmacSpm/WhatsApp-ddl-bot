@@ -10,8 +10,6 @@ import readline from "readline";
 import downloadManager from './services/downloadManager.js';
 import { createClient } from '@supabase/supabase-js';
 import { useSupabaseAuthState, clearAuthState } from './utils/useSupabaseAuthState.ts'
-import { isConfigCommand, parseConfigCommand } from "./utils/configParser.js";
-import { defaultYtOptions } from './config/youtubeConfig.js'
 import { handleConfigCommand } from './commands/configCommands.js';
 
 
