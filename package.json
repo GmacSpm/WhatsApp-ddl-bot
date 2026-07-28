@@ -1,27 +1,34 @@
 {
-  "name": "whatsapp-ddl-bot",
-  "version": "1.0.0",
-  "description": "Um Bot pro WhatsApp para downloads",
-  "type": "module",
-  "main": "index.js",
-  "bin": {
-    "whatsapp-bot": "./index.js"
-  },
-  "scripts": {
-    "start": "node index.js"
-  },
-  "engines": {
-    "node": "24.11.0"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "2.110.8",
-    "@whiskeysockets/baileys": "7.0.0-rc13",
-    "archiver": "8.0.0",
-    "brace-expansion": "5.0.8",
-    "dotenv": "16.6.1",
-    "express": "5.2.1",
-    "pino": "8.21.0",
-    "qrcode-terminal": "0.12.0",
-    "youtube-dl-exec": "3.1.9"
-  }
+    "name": "whatsapp-ddl-bot",
+    "version": "1.0.0",
+    "description": "Um Bot pro WhatsApp para downloads",
+    "type": "module",
+    "main": "index.js",
+    "bin": {
+        "whatsapp-bot": "./index.js"
+    },
+    "scripts": {
+        "start": "node index.js"
+    },
+    "engines": {
+        "node": "24.11.0"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "2.110.8",
+        "@whiskeysockets/baileys": "7.0.0-rc13",
+        "archiver": "8.0.0",
+        "brace-expansion": "5.0.8",
+        "dotenv": "16.6.1",
+        "express": "5.2.1",
+        "pino": "8.21.0",
+        "qrcode-terminal": "0.12.0",
+        "youtube-dl-exec": "3.1.9"
+    },
+    "devDependencies": {
+        "@eslint/js": "10.0.1",
+        "eslint": "10.8.0",
+        "globals": "17.8.0",
+        "typescript-eslint": "8.65.0",
+        "prettier": "3.9.6"
+    }
 }
