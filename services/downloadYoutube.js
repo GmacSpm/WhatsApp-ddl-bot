@@ -21,11 +21,16 @@ export async function downloadYouTube(url, fileName) {
         });
     }
 
-    if (process.env.YOUTUBE_COOKIE) {
-        defaultYtOptions.cookies = await createCookieFile(process.env.YOUTUBE_COOKIE);
-        console.log('🍪 Usando cookie do .env para autenticação');
-    } else {
-        console.log('Nenhum cookie em .env, tentando baixar sem cookies')
+    if (defaultYtOptions.proxy != null) {
+        console.log('Usando proxy configurado pelo usuário: '+defaultYtOptions.proxy);
+    }
+    else{
+        if (process.env.YOUTUBE_COOKIE) {
+            defaultYtOptions.cookies = await createCookieFile(process.env.YOUTUBE_COOKIE);
+            console.log('🍪 Usando cookie do .env para autenticação');
+        } else {
+            console.log('Tentando baixar sem cookies')
+        }
     }
 
     // Nome base (sem extensão) – se fileName tiver extensão, removemos
