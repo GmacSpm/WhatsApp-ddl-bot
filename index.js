@@ -10,6 +10,9 @@ import readline from "readline";
 import downloadManager from './services/downloadManager.js';
 import { createClient } from '@supabase/supabase-js';
 import { useSupabaseAuthState, clearAuthState } from './utils/useSupabaseAuthState.ts'
+import { isConfigCommand, parseConfigCommand } from "./utils/configParser.js";
+import { defaultYtOptions } from './config/youtubeConfig.js'
+import { handleConfigCommand } from './commands/configCommands.js';
 
 
 // Para usar no endpoint, API de status
@@ -50,7 +53,7 @@ const pendingFiles = new Map();
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useSupabaseAuthState(supabase,CLIENT_ID);
-    const {version} = await fetchLatestBaileysVersion()
+    const { version } = await fetchLatestBaileysVersion()
 
     const sock = makeWASocket({
         version,
@@ -145,7 +148,19 @@ async function connectToWhatsApp() {
 
         if (text === undefined) return
 
+        // PRA TESTAR APENAS, NÃO RESPONDE ESTRANHOS
+        if (!message.key.fromMe) {
+            console.log('Esta mensagem foi enviada por outra pessoa!');
+            return;
+        }
+
         console.log('Mensagem recebida:', text)
+         // Comandos de configuração
+        if (text.startsWith('set ') || text.startsWith('get ')) {
+            const result = await handleConfigCommand(text);
+            await sock.sendMessage(jid, {text: result.message});
+            return;
+        }
 
         // 1. VERIFICA SE ESTÁ ESPERANDO NOME DO ARQUIVO DESSE USUÁRIO
         if (pendingFiles.has(jid)) {
